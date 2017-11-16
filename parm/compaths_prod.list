@@ -21,7 +21,7 @@
 /com/dgex
 /com2/dump
 /com2/ecmwf/prod/ecmwf
-/com2/ecmwf/prod/ecmwf_mos
+/comhps/ecmwf/prod/ecmwf_mos
 /comhps/ekd
 /com/estofs
 /com2/etss
@@ -44,7 +44,7 @@
 /com/hur/prod/global
 /com2/hysplit
 /com/ingest
-/com/lmp
+/com2/lmp
 /com2/mag
 /com/mods
 /com2/nam
