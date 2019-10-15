@@ -3,7 +3,7 @@ set(EXENAME mdate )
 file(GLOB EXE_SRC ${CMAKE_CURRENT_SOURCE_DIR}/*.f ${CMAKE_CURRENT_SOURCE_DIR}/*.f90 ${CMAKE_CURRENT_SOURCE_DIR}/*.F)
 
 add_executable(${EXENAME} ${EXE_SRC} )
-target_link_libraries(${EXENAME} ${W3NCO_4_LIBRARY} )
+target_link_libraries(${EXENAME} ${W3NCO_LIB4} )
 
 install(TARGETS ${EXENAME}
         RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
