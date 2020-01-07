@@ -32,7 +32,7 @@ if(POLICY CMP0012)
     cmake_policy(SET CMP0012 NEW)
 endif()
 
-find_package( W3NCO )
+find_package(W3NCO REQUIRED)
 add_subdirectory(sorc/fsync_file.cd)	
 add_subdirectory(sorc/mdate.fd)
 add_subdirectory(sorc/ndate.fd)  
