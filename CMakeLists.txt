@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.15)
 project(prod_util VERSION 1.1.1)
 set(${PROJECT_NAME}_VERSION ${PROJECT_VERSION} CACHE INTERNAL "${PROJECT_NAME} version number")
 
@@ -32,11 +32,13 @@ if(POLICY CMP0012)
   cmake_policy(SET CMP0012 NEW)
 endif()
 
+set(CMAKE_FIND_PACKAGE_PREFER_CONFIG true)
 if (NOT TARGET w3nco_4)
-  find_package(w3nco_4 REQUIRED CONFIG)
+  find_package(w3nco_4 REQUIRED)
 endif()
 
 add_subdirectory(sorc/fsync_file.cd)	
 add_subdirectory(sorc/mdate.fd)
 add_subdirectory(sorc/ndate.fd)  
 add_subdirectory(sorc/nhour.fd)
+
