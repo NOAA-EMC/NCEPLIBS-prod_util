@@ -34,7 +34,7 @@ endif()
 
 set(CMAKE_FIND_PACKAGE_PREFER_CONFIG true)
 if (NOT TARGET w3nco_4)
-  find_package(w3nco_4 REQUIRED)
+  find_package(w3nco REQUIRED)
 endif()
 
 add_subdirectory(sorc/fsync_file.cd)	
