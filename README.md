@@ -5,7 +5,7 @@ A collection of NCEP production utilities
 
 ### Prerequisites
 
-Compilers: GNU | Intel | Clang | AppleClang | PGI
+Compilers: GNU | Intel | Clang | AppleClang 
 
 
 ### Installing
@@ -20,7 +20,7 @@ make install
 
 
 ### Version
-1.1.1
+1.2.0
 
 
 ### Authors
