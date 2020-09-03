@@ -29,3 +29,4 @@ include(GNUInstallDirs)
 find_package(w3nco REQUIRED)
 
 add_subdirectory(sorc)
+add_subdirectory(ush)
