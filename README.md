@@ -10,8 +10,6 @@ NCEP/EMC developers.
 
 Code manager: Hang Lei
 
-## Prerequisites
-
 ## Installing
 
 ```
