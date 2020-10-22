@@ -4,6 +4,9 @@
 Product utilities for the NCEP models. This is part of the
 [NCEPLIBS](https://github.com/NOAA-EMC/NCEPLIBS) project.
 
+For complete documentation see
+https://noaa-emc.github.io/NCEPLIBS-prod_util/.
+
 ## Authors
 
 NCEP/EMC developers.

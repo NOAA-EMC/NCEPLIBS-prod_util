@@ -1,6 +1,11 @@
+# This is the main CMake file for NCEPLIBS-prod_util.
+#
+# Mark Potts, Kyle Gerheiser
 cmake_minimum_required(VERSION 3.15)
 project(prod_util VERSION 1.1.1)
 set(${PROJECT_NAME}_VERSION ${PROJECT_VERSION} CACHE INTERNAL "${PROJECT_NAME} version number")
+
+option(ENABLE_DOCS "Enable generation of doxygen-based documentation." OFF)
 
 enable_language (Fortran)
 if (NOT CMAKE_BUILD_TYPE)
@@ -42,3 +47,8 @@ add_subdirectory(sorc/mdate.fd)
 add_subdirectory(sorc/ndate.fd)  
 add_subdirectory(sorc/nhour.fd)
 
+# Determine whether or not to generate documentation.
+if(ENABLE_DOCS)
+  find_package(Doxygen REQUIRED)
+endif()
+add_subdirectory(docs)  
