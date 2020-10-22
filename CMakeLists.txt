@@ -1,4 +1,4 @@
-# This is the main CMake file for NCEPLIBS-ip.
+# This is the main CMake file for NCEPLIBS-prod_util.
 #
 # Mark Potts, Kyle Gerheiser
 cmake_minimum_required(VERSION 3.15)
