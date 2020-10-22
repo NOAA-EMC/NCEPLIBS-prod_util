@@ -1,7 +1,0 @@
-#!/bin/sh
-
-if [ -n "$pgm" ]; then
-  postmsg $jlogfile "$pgm started"
-else
-  >&2 echo "WARNING: pgm variable not defined"
-fi
