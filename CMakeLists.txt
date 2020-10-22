@@ -1,3 +1,6 @@
+# This is the main CMake file for NCEPLIBS-ip.
+#
+# Mark Potts, Kyle Gerheiser
 cmake_minimum_required(VERSION 3.15)
 
 file(STRINGS "VERSION" pVersion)
@@ -6,6 +9,8 @@ project(
     produtil
     VERSION ${pVersion}
     LANGUAGES C Fortran)
+
+option(ENABLE_DOCS "Enable generation of doxygen-based documentation." OFF)
 
 if(NOT CMAKE_BUILD_TYPE MATCHES "^(Debug|Release|RelWithDebInfo|MinSizeRel)$")
   message(STATUS "Setting build type to 'Release' as none was specified.")
@@ -16,17 +21,15 @@ if(NOT CMAKE_BUILD_TYPE MATCHES "^(Debug|Release|RelWithDebInfo|MinSizeRel)$")
                                                "MinSizeRel" "RelWithDebInfo")
 endif()
 
-if(NOT CMAKE_C_COMPILER_ID MATCHES "^(Intel|GNU|AppleClang|Clang)$")
-  message(WARNING "Compiler not officially supported: ${CMAKE_C_COMPILER_ID}")
-endif()
-
-if(NOT CMAKE_Fortran_COMPILER_ID MATCHES "^(Intel|GNU)$")
-  message(WARNING "Compiler not officially supported: ${CMAKE_Fortran_COMPILER_ID}")
-endif()
-
 include(GNUInstallDirs)
 
 find_package(w3nco REQUIRED)
 
 add_subdirectory(sorc)
 add_subdirectory(ush)
+
+# Determine whether or not to generate documentation.
+if(ENABLE_DOCS)
+  find_package(Doxygen REQUIRED)
+endif()
+add_subdirectory(docs)  
