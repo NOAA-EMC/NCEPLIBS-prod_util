@@ -1,3 +1,6 @@
+# This is the main CMake file for NCEPLIBS-prod_util.
+#
+# Mark Potts, Kyle Gerheiser
 cmake_minimum_required(VERSION 3.15)
 
 file(STRINGS "VERSION" pVersion)
@@ -6,6 +9,8 @@ project(
     produtil
     VERSION ${pVersion}
     LANGUAGES C Fortran)
+
+option(ENABLE_DOCS "Enable generation of doxygen-based documentation." OFF)
 
 if(NOT CMAKE_BUILD_TYPE MATCHES "^(Debug|Release|RelWithDebInfo|MinSizeRel)$")
   message(STATUS "Setting build type to 'Release' as none was specified.")
@@ -27,6 +32,12 @@ endif()
 include(GNUInstallDirs)
 
 find_package(w3nco REQUIRED)
+
+# Determine whether or not to generate documentation.
+if(ENABLE_DOCS)
+  find_package(Doxygen REQUIRED)
+  add_subdirectory(docs)  
+endif()
 
 add_subdirectory(sorc)
 add_subdirectory(ush)
