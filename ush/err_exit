@@ -28,7 +28,7 @@ msg2="
 >&2 echo "$msg2"
 
 # list loaded modules
-. /opt/modules/default/init/sh
+#. /opt/modules/default/init/sh
 module list
 >&2 echo ""
 
