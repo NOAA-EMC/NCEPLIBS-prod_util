@@ -31,7 +31,7 @@ endif()
 
 include(GNUInstallDirs)
 
-find_package(w3nco REQUIRED)
+find_package(w3emc REQUIRED)
 
 # Determine whether or not to generate documentation.
 if(ENABLE_DOCS)
