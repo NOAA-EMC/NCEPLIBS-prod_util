@@ -76,6 +76,6 @@ jobs:
       run: |
         cd prod_util
         mkdir build && cd build
-        CC=gcc-11 FC=gfortran-11 cmake ..
+        CC=gcc-11 FC=gfortran-11 cmake .. -DCMAKE_PREFIX_PATH="~/bacio;~/w3emc"
         make -j2
         ctest --output-on-failure --verbose
