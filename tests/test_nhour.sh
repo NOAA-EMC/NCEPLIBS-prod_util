@@ -3,7 +3,7 @@ set -x
 exe=${1:-nhour}
 
 NHOUR_REF_A=00
-NHOUR_TEST_A=$($exe $(TZ=UT date -d 'today' +%Y%m%d%H))
+NHOUR_TEST_A=$(TZ=UT faketime '20230920 00:00' $exe 2023092000)
 if [ "$NHOUR_REF_A" -eq "$NHOUR_TEST_A" ]; then
   pass=A
 else
@@ -11,7 +11,7 @@ else
 fi
 
 NHOUR_REF_B=27
-NHOUR_TEST_B=$($exe $(TZ=UT date -d 'today +27hours' +%Y%m%d%H))
+NHOUR_TEST_B=$(TZ=UT faketime '20230920 00:00' $exe 2023092103)
 if [ "$NHOUR_REF_B" -eq "$NHOUR_TEST_B" ]; then
   pass=${pass}B
 else

@@ -2,7 +2,7 @@
 set -x
 exe=${1:-mdate}
 
-MDATE_REF_A=$(TZ=UTC date +%Y%m%d%H%M)
+MDATE_REF_A=$(TZ=UT date +%Y%m%d%H%M)
 MDATE_TEST_A=$($exe)
 if [ "$MDATE_REF_A" -eq "$MDATE_TEST_A" ]; then
   pass=A
