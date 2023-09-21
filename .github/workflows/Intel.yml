@@ -98,4 +98,5 @@ jobs:
         mkdir build && cd build
         ${{ matrix.compilers }} cmake .. -DCMAKE_PREFIX_PATH="~/bacio;~/w3emc"
         make -j2
+        sudo apt install faketime # for nhour unit tests
         ctest --output-on-failure --verbose
