@@ -1,7 +1,8 @@
+![Status](https://github.com/NOAA-EMC/NCEPLIBS-prod_util/workflows/GCC/badge.svg)
 
 # NCEPLIBS-prod_util
 
-Product utilities for the NCEP models. This is part of the
+Production utilities for the NCEP models. This is part of the
 [NCEPLIBS](https://github.com/NOAA-EMC/NCEPLIBS) project.
 
 For complete documentation see
