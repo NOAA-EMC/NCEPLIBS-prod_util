@@ -60,7 +60,7 @@ jobs:
       uses: actions/cache@v3
       with:
         path: ~/w3emc
-        key: w3emc-GCC-${{ runner.os }}-${{ matrix.w3emc-version }}
+        key: w3emc-GCC-${{ runner.os }}-${{ matrix.w3emc-version }}-${{ matrix.bacio-version }}
 
     - name: checkout-w3emc
       if: steps.cache-w3emc.outputs.cache-hit != 'true'
