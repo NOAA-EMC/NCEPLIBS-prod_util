@@ -52,7 +52,7 @@ jobs:
       uses: actions/cache@v3
       with:
         path: ~/w3emc
-        key: w3emc-GCC-${{ runner.os }}-1.10.0
+        key: w3emc-GCC-${{ runner.os }}-2.10.0
 
     - name: checkout-w3emc
       if: steps.cache-w3emc.outputs.cache-hit != 'true'
@@ -60,7 +60,7 @@ jobs:
       with:
         repository: NOAA-EMC/NCEPLIBS-w3emc
         path: w3emc
-        ref: v1.10.0
+        ref: v2.10.0
 
     - name: build-w3emc
       if: steps.cache-w3emc.outputs.cache-hit != 'true'
