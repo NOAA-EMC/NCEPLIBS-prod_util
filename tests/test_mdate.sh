@@ -1,4 +1,9 @@
 #!/bin/bash
+#
+# This is a test for the NCEPLIBS-prod_util project. This test runs
+# the mdate utility.
+#
+# Alex Richert, 9/23
 set -x
 exe=${1:-mdate}
 
