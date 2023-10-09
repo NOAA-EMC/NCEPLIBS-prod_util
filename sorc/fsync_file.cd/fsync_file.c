@@ -1,5 +1,6 @@
-/** @file
- *
+/** 
+ * @file
+ * Call fsync() on a file.
  */
 #include <stdio.h>
 #include <errno.h>
