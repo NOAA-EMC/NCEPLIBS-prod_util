@@ -71,4 +71,15 @@ jobs:
         cmake -DCMAKE_PREFIX_PATH="~/bacio;~/w3emc" ..
         make -j2
         ctest --output-on-failure --verbose
+        gcovr --root .. -v  --html-details --exclude ../tests --exclude CMakeFiles --print-summary -o test-coverage.html &> /dev/null
         make install
+
+    - name: upload-test-coverage
+      uses: actions/upload-artifact@v3
+      with:
+        name: prod_util-test-coverage
+        path: |
+          prod_util/build/*.html
+          prod_util/build/*.css
+
+        
