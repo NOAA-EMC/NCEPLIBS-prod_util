@@ -1,7 +1,7 @@
 # This is a GitHub actions workflow for the NCEPLIBS-prod_util project.
 #
 # This workflow builds as the developer would, with develop branch of
-# bacio and w3emc, with documentation build and code coverage.
+# w3nco, with documentation build and code coverage.
 #
 # Ed Hartnett 10/9/23
 name: developer
@@ -27,35 +27,20 @@ jobs:
         sudo apt-get update
         sudo apt-get install faketime doxygen gcovr
 
-    - name: checkout-bacio
+    - name: checkout-w3nco
       uses: actions/checkout@v4
       with:
-        repository: NOAA-EMC/NCEPLIBS-bacio
-        path: bacio
+        repository: NOAA-EMC/NCEPLIBS-w3nco
+        path: w3nco
         ref: develop
 
-    - name: build-bacio
+    - name: build-w3nco
+      if: steps.cache-w3nco.outputs.cache-hit != 'true'
       run: |
-        cd bacio
-        mkdir build && cd build
-        cmake -DCMAKE_INSTALL_PREFIX=~/bacio ..
-        make -j2
-        make install
-
-    - name: checkout-w3emc
-      uses: actions/checkout@v4
-      with:
-        repository: NOAA-EMC/NCEPLIBS-w3emc
-        path: w3emc
-        ref: develop
-
-    - name: build-w3emc
-      if: steps.cache-w3emc.outputs.cache-hit != 'true'
-      run: |
-        cd w3emc
+        cd w3nco
         mkdir build
         cd build
-        cmake -DBUILD_WITH_BUFR=OFF -DCMAKE_PREFIX_PATH=~/bacio -DCMAKE_INSTALL_PREFIX=~/w3emc ..
+        cmake -DBUILD_WITH_BUFR=OFF  -DCMAKE_INSTALL_PREFIX=~/w3nco ..
         make -j2
         make install
 
@@ -68,7 +53,7 @@ jobs:
       run: |
         cd prod_util
         mkdir build && cd build
-        cmake -DCMAKE_PREFIX_PATH="~/bacio;~/w3emc" -DCMAKE_Fortran_FLAGS="-g -fprofile-abs-path -fprofile-arcs -ftest-coverage -O0 -Wall" -DCMAKE_C_FLAGS="-g -fprofile-abs-path -fprofile-arcs -ftest-coverage -O0 -Wall" ..
+        cmake -DCMAKE_PREFIX_PATH="~/w3nco" -DCMAKE_Fortran_FLAGS="-g -fprofile-abs-path -fprofile-arcs -ftest-coverage -O0 -Wall" -DCMAKE_C_FLAGS="-g -fprofile-abs-path -fprofile-arcs -ftest-coverage -O0 -Wall" ..
         make -j2
         ctest --output-on-failure --verbose
         gcovr --root .. -v  --html-details --exclude ../tests --exclude CMakeFiles --print-summary -o test-coverage.html &> /dev/null
