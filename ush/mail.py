@@ -1,8 +1,9 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 # Author:  Kit Menlove <kit.menlove@noaa.gov>
-# Purpose: If the user is in the prod group, submit an e-mail message to the production e-mail
-#          queue. For other users, the message is merely printed to standard out.
+#	   Edits by <Arash.Bigdeli@noaa.gov> 2021 Aug
+# Purpose: If the user is in the prod group, submit and send an e-mail message
+#          For other users, the message is merely printed to standard out.
 # Usage:   mail.py -s subject [-c cc-addr] [-b bcc-addr] [--html] [-v] to-addr message_file
 #          mail.py -s subject [-c cc-addr] [-b bcc-addr] [--html] [-v] [to-addr] < message_file
 #          echo "$msg" | mail.py -s subject [-c cc-addr] [-b bcc-addr] [--html] [-v] [to-addr]
@@ -10,17 +11,21 @@
 #          to-addr - a comma-delimited list of recipient e-mail addresses
 
 from __future__ import print_function
-from os import getenv, getuid, path
+from os import getenv, getuid, path, environ, system
 import re, grp, pwd
 import fileinput
-import sqlite3
-from subprocess import Popen, PIPE
+from subprocess import check_output, call
 from email.utils import formatdate
+from sys import exit, stderr
+from email.mime.text import MIMEText
+from time import sleep, time
 
 # prod jobs go to the prod database, everything else goes to the para database
 envir = getenv('envir')
+PARATEST = getenv('PARATEST')
+model = getenv('model')
 current_user=pwd.getpwuid(getuid())[0]
-current_user_address=('ncep.list.SPA-Helpdesk' if current_user in ('nwprod', 'ecfprod') else current_user) + '@noaa.gov'
+current_user_address=('nco.spa' if current_user in ("ops.para" "ops.prod") else current_user) + '@noaa.gov'
 default_recipient=(getenv('MAILTO') if getenv('MAILTO') else current_user_address)
 
 email_regex=r"[a-zA-Z][-+._%a-zA-Z0-9]*@[a-zA-Z0-9]+(?:[-.][a-zA-Z0-9]+){0,12}\.[a-zA-Z]{2,15}"
@@ -33,38 +38,31 @@ def validate_email_address_list(raw_address):
 
 def send(subject, message_body, to_address=default_recipient, cc_address=None, bcc_address=None, from_name=None, is_html=False, verbose=False):
     # Generate the "from" address
-    getsys = Popen(('getsystem.pl', '-p'), stdout=PIPE)
-    current_system = getsys.communicate()[0]
-    if getsys.returncode == 0:
-        from_address = "{0}@{1}.wcoss.ncep.noaa.gov".format(current_user, current_system.lower())
-    else:
-        from_address = current_user_address
-
+    from_address = current_user_address
     # Prepend the environment to the subject if not "prod"
     if envir == 'prod' or envir == None:
-        message_subject = subject.strip()
+        if PARATEST == 'YES':
+            message_subject = ("[{0}] {1}".format("PARATEST", subject.strip()))
+        else:
+            message_subject = ("[{0}] {1}".format("WCOSS2", subject.strip()))
     else:
-        message_subject = ("[{0}] {1}".format(envir, subject.strip()))
-
+        if PARATEST == 'YES':
+            message_subject = ("[{0}-{1}] {2}".format("PARATEST", envir, subject.strip()))
+        else:
+            message_subject = ("[{0}] [{1}] {2}".format("WCOSS2",envir, subject.strip()))
     # If certain job-information variables are set, create a string containing their values to append to the message
     job_info = []
 
     ecFlow_task_path = getenv('ECF_NAME')
     if ecFlow_task_path:
         job_info.append(("ecFlow Task", ecFlow_task_path))
-
-    stdout_file = getenv('LSB_OUTPUTFILE')
-    if stdout_file:
-        if path.isfile(stdout_file):
-            stdout_file = path.realpath(stdout_file)
-        else:
-            pdy = getenv('PDY')
-            if pdy:
-                stdout_file_pdy = stdout_file.replace('/today/', "/{0}/".format(pdy), 1)
-                if path.isfile(stdout_file_pdy):
-                    stdout_file = path.realpath(stdout_file_pdy)
-        job_info.append(("Standard Output", stdout_file))
-
+    if getenv('ECF_RID'):
+        try:
+            stdout_file = check_output("qstat -fwx {0} | grep Output_Path".format(getenv('ECF_RID')), shell=True).decode().split(":")[1]
+        except:
+            stdout_file="Job ran locally"
+        finally:
+            job_info.append(("Standard Output", stdout_file))
     if job_info:
         job_info_text = '<br /><hr /><table>' if is_html else "\n{0}\n".format('-'*80)
         for info in job_info:
@@ -96,32 +94,34 @@ def send(subject, message_body, to_address=default_recipient, cc_address=None, b
         "from_address": from_address,
         "reply_to": current_user_address,
         "message_subject": message_subject,
-        "message_body": message_body,
+        "body": message_body,
         "is_html": is_html
     }
-    # Only users within the prod group are allowed to add messages to the production message queue
-    if current_user in grp.getgrnam("prod").gr_mem:
-        if getenv('COMROOT'):
-            email_database = "{0}/logs/{1}/email.db".format(getenv('COMROOT'), 'prod' if envir == 'prod' else 'para')
-            sql = sqlite3.connect(email_database)
-            if not sql.execute('SELECT name FROM sqlite_master WHERE type=\'table\' AND name=\'pending\';').fetchone():
-                sql.execute('''CREATE TABLE pending (
-                                   submit_time INT, to_addr TEXT, cc_addr TEXT,
-                                   bcc_addr TEXT, from_name TEXT, from_addr TEXT,
-                                   reply_to TEXT, subject TEXT, body TEXT, is_html INT
-                               )''')
-            sql.execute('''INSERT INTO pending VALUES (
-                               :timestamp, :target_address, :carbon_copy_address,
-                               :blind_carbon_copy_address, :from_name, :from_address,
-                               :reply_to, :message_subject, :message_body, :is_html
-                           )''', message_info)
-            sql.commit()
-            sql.close()
-            if verbose:
-                print('The following message has been queued for transmission:')
-        else:
-            print('WARNING: The following message will NOT be sent because $COMROOT is not defined:')
-            verbose=True
+    if current_user in grp.getgrnam("ops").gr_mem:
+       print(message_info)
+       msg = MIMEText(message_info['body'], ('html' if message_info['is_html'] else 'plain'))
+       msg['Date'] = message_info['timestamp']
+       if message_info['from_name']:
+           msg['From'] = "{0} <{1}>".format(message_info['from_name'], message_info['from_address'])
+       else:
+           msg['From'] = message_info['from_address']
+       msg['reply_to'] = message_info['reply_to']
+       msg['To'] = message_info['target_address']
+       msg['Cc'] = message_info['carbon_copy_address']
+       msg['Subject'] = message_info['message_subject']
+       all_recipients = message_info['target_address'].split(',')
+       if isinstance(message_info['carbon_copy_address'], str): all_recipients.extend(message_info['carbon_copy_address'].split(','))
+       if isinstance(message_info['blind_carbon_copy_address'], str): all_recipients.extend(message_info['blind_carbon_copy_address'].split(','))
+       
+       verbose=True
+       if msg['Cc']:  
+         errors = system('echo "%s" | mailx -s "%s" -c %s %s -r %s' %(message_info['body'],msg['Subject'],msg['Cc'],msg['To'],msg['reply_to']))
+       else:
+         errors = system('echo "%s" | mailx -s "%s" %s -r %s' %(message_info['body'],msg['Subject'],msg['To'],msg['reply_to']))
+
+       if errors:
+           print("Unable to deliver to one or more recipients:", errors, file=stderr)
+           exit(1)
     else:
         print('The following message will NOT be sent due to insufficient permissions:')
         verbose=True
@@ -136,7 +136,7 @@ def send(subject, message_body, to_address=default_recipient, cc_address=None, b
             print("From: %(from_address)s" % message_info)
         print("""Date: %(timestamp)s
 Subject: %(message_subject)s
-%(message_body)s
+%(body)s
 --------------------------------------------------------------------------------""" % message_info)
 
 if __name__ == "__main__":
@@ -158,14 +158,14 @@ usage: %(prog)s -s subject [-c cc-addr] [-b bcc-addr] [--html] [-v] to-addr mess
 usage: %(prog)s -s subject [-c cc-addr] [-b bcc-addr] [--html] [-v] [to-addr] < message_file''')
     # Subject is optional when $jobid variable is set
     if getenv('jobid'):
-        parser.add_argument('-s', '--subject', default="Message from WCOSS job " + getenv('jobid'), metavar='subject', help="subject of the e-mail message")
+        parser.add_argument('-s', '--subject', default="Message from WCOSS2 job " + getenv('jobid'), metavar='subject', help="subject of the e-mail message")
     else:
         parser.add_argument('-s', '--subject', required=True, metavar='subject', help="subject of the e-mail message")
     parser.add_argument('-c', '--cc', type=EmailType, metavar='cc-addr', help='comma-delimited list of carbon copy recipient(s)')
     parser.add_argument('-b', '--bcc', type=EmailType, metavar='bcc-addr', help='comma-delimited list of blind carbon copy recipient(s)')
     parser.add_argument('-n', '--from', dest='from_name', metavar='name', help='name or title of the sender - will not change the underlying address')
     parser.add_argument('-v', '--verbose', action='store_true', help='print the message header and body')
-    # Default "to" address to user's NOAA inbox (or SPA helpdesk when user is nwprod or ecfprod)
+    # Default "to" address to user's NOAA inbox (or SPA helpdesk when user is ops.prod)
     parser.add_argument('address', default=default_recipient, nargs='?', type=EmailType, metavar='to-addr',
         help='comma-delimited e-mail address(es) of the intended recipient(s); if omitted, the message will be sent ' +
         'to the recipient(s) specified in the $MAILTO variable, or the current user @noaa.gov if undefined')
@@ -174,4 +174,4 @@ usage: %(prog)s -s subject [-c cc-addr] [-b bcc-addr] [--html] [-v] [to-addr] < 
 
     message_body = ''.join(fileinput.input(message))
     send(args.subject, message_body, args.address, args.cc, args.bcc, args.from_name, args.html, args.verbose)
-
+    sleep(2)
