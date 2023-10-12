@@ -13,12 +13,12 @@
 #                                  variable is undefined
 
 if [ $# -eq 2 ]; then
-   jlogfile="$1"
+   logfile="$1"
    msg="$2"
 elif [ $# -eq 1 ]; then
    msg="$1"
 else
-   >&2 echo "ERROR: postmsg accepts one (\$msg) or two (\$jlogfile and \$msg) arguments"
+   >&2 echo "ERROR: postmsg accepts one (message) or two (logfile and message) arguments"
    exit 16
 fi
 
@@ -26,11 +26,10 @@ fi
 datestr=$(date -u '+%m/%d %H:%M:%S')
 msgline="Z ${jobid}-${msg}"
 
-if [ -n "$jlogfile" ]; then
-   echo "${datestr}${msgline}" >> $jlogfile
+if [ -n "$logfile" ]; then
+   echo "${datestr}${msgline}" >> $logfile
 else
    >&2 echo ""
-   >&2 echo "WARNING: \$jlogfile variable not defined. Message intended for the jlogfile:"
    >&2 echo "  ${datestr}${msgline}"
    >&2 echo ""
 fi

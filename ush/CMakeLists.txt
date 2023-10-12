@@ -6,7 +6,8 @@ list(APPEND _ushPrograms
   err_chk
   err_exit
   finddate.sh
-  getsystem.pl
+  getjsonvalue
+  getsystem
   mail.py
   postmsg
   prep_step

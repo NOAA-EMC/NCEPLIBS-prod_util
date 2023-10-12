@@ -17,6 +17,10 @@
 #       Generate PDY script with PDYm${num1} to PDYp${num2} variables
 #####################################################################
 
+if [ $PWD == $HOME ]; then
+  err_exit "PWD==HOME ($PWD)"
+fi
+
 # Check to be sure that cycle var is set
 if [[ ! "$cycle" =~ t??z ]]; then
    err_exit "cycle variable not set or formatted incorrectly"
