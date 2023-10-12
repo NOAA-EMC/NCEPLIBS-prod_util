@@ -1,13 +1,12 @@
-#!/bin/sh
+#!/bin/bash
 
-# SCRIPT NAME:  err_exit  Author:   Bill Facey   2 Apr 96
-#                         Modified: Kit Menlove 28 May 15
+# SCRIPT NAME:  err_exit
 #
 # ABSTRACT:  This script is to be used when a fatal error or condition 
 # has been reached and you want to terminate the job.
 #
 # USAGE:  To use this script one must export the following variables to the
-# script: jobid, SENDECF, pgm, pgmout, DATA, and jlogfile. One can provide
+# script: jobid, SENDECF, pgm, pgmout, DATA. One can provide
 # a message for the logfile by passing it to the script as an argument.
 
 msg1=${@:-Job $jobid failed}
@@ -19,24 +18,19 @@ if [ -n "$err" ]; then
 fi
 
 msg2="
-*************************************************************
-** FATAL ERROR: $msg1
-** ABNORMAL EXIT at $(date) on $HOSTNAME
-*************************************************************
+-------------------------------------------------------------
+-- FATAL ERROR: $msg1
+-- ABNORMAL EXIT at $(date) on $HOSTNAME
+-------------------------------------------------------------
 "
 
 >&2 echo "$msg2"
 
 # list loaded modules
-#. /opt/modules/default/init/sh
 module list
 >&2 echo ""
 
-if [ -n "$jlogfile" ]; then
-  postmsg $jlogfile "$msg1"
-else
-  >&2 echo "WARNING: jlogfile variable not defined"
-fi
+>&2 echo "$msg1"
 
 # list files in temporary working directory
 if [ -n "$DATA" ]; then
@@ -57,17 +51,15 @@ elif [ -s errfile ]; then
   >&2 cat errfile
 fi
 
-if [ -n "$LSB_JOBID" ]; then
-  if [ "$SENDECF" = "YES" ]; then
-    timeout 30 ecflow_client --msg "$ECF_NAME: $msg1"
-    if [ "$RUN_ENVIR" = "nco" ] && [ -n "$ECF_NODE" ] && [ -n "$ECF_NAME" ] && [ -n "$ECF_TRYNO" ]; then
-      if ([ "$SITE" = "LUNA" ] && [[ "$ECF_NODE" == lecflow? ]]) || ([ "$SITE" = "SURGE" ] && [[ "$ECF_NODE" == secflow? ]]); then
-        echo "$msg2" >> /gpfs/hps/nco/ops/ecf/ecfnets/output${ECF_NAME}.$ECF_TRYNO
-      else
-        timeout 30 ssh ecfprod@$ECF_NODE "echo \"$msg2\" >> /ecf/ecfnets/output${ECF_NAME}.$ECF_TRYNO"
-      fi
-    fi
-  fi
-  bkill $LSB_JOBID
-  sleep 60  # Wait for LSF to kill the job
+# Write to ecflow log:
+if [ "$SENDECF" = "YES" ]; then
+  timeout 30 ecflow_client --msg "$ECF_NAME: $msg1"
+  timeout 30 ssh $ECF_HOST "echo \"$msg2\" >> ${ECF_JOBOUT:?}"
+fi
+
+# KILL THE JOB:
+if [ -z $PBS_JOBID ]; then
+ecflow_client --kill=${ECF_NAME:?}
+else
+qdel $PBS_JOBID
 fi
