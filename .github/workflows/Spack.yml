@@ -36,15 +36,15 @@ jobs:
         . spack/share/spack/setup-env.sh
         spack env create prod_util-env
         spack env activate prod_util-env
-        cp $GITHUB_WORKSPACE/prod_util/spack/package.py $SPACK_ROOT/var/spack/repos/builtin/packages/prod_util/package.py
+        cp $GITHUB_WORKSPACE/prod_util/spack/package.py $SPACK_ROOT/var/spack/repos/builtin/packages/prod-util/package.py
         spack develop --no-clone --path $GITHUB_WORKSPACE/prod_util prod_util@develop
-        spack add prod_util@develop%gcc@11
+        spack add prod-util@develop%gcc@11
         spack external find cmake gmake
         spack concretize
         # Run installation and run CTest suite
         spack install --verbose --fail-fast --test root
         # Run 'spack load' to check for obvious errors in setup_run_environment
-        spack load prod_util
+        spack load prod-util
 
     - name: Upload test results
       uses: actions/upload-artifact@v3
