@@ -26,6 +26,10 @@ jobs:
 
     steps:
 
+    - name: install-dependencies
+      run: |
+        sudo apt install faketime # for nhour unit tests
+
     # See https://software.intel.com/content/www/us/en/develop/articles/oneapi-repo-instructions.html
     - name: install-intel
       run: |

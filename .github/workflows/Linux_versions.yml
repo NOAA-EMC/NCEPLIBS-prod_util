@@ -1,6 +1,7 @@
 # This is a GitHub actions workflow for the NCEPLIBS-prod_util project.
 #
-# This workflow builds with GCC
+# This workflow builds with GCC. In this workflow we don't install
+# faketime, to ensure that the build will work without it.
 #
 # Alex Richert, Sep 2023, Ed Hartnett
 name: Linux_versions
@@ -25,11 +26,6 @@ jobs:
         w3emc-version: [2.9.3, 2.10.0, 2.11.0]
 
     steps:
-
-    - name: install-dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install faketime
 
     - name: cache-bacio
       id: cache-bacio
