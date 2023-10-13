@@ -25,7 +25,7 @@ jobs:
     - name: install-dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install faketime doxygen gcovr
+        sudo apt-get install doxygen gcovr
 
     - name: checkout-bacio
       uses: actions/checkout@v4

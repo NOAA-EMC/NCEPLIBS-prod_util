@@ -38,7 +38,6 @@ add_subdirectory(ush)
 
 include(CTest)
 if(BUILD_TESTING)
-#  find_program(faketime NAME faketime REQUIRED)
   add_subdirectory(tests)
 endif()
 
