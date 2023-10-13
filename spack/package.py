@@ -20,7 +20,7 @@ class ProdUtil(CMakePackage):
     version("develop", branch="develop")
     version("1.2.2", sha256="c51b903ea5a046cb9b545b5c04fd28647c58b4ab6182e61710f0287846350ef8")
 
-    depends_on("w3nco")
+    depends_on("w3emc")
 
     def check(self):
         with working_dir(self.builder.build_directory):

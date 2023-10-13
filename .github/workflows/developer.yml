@@ -73,7 +73,7 @@ jobs:
         ctest --output-on-failure --verbose
         gcovr --root .. -v  --html-details --exclude ../tests --exclude CMakeFiles --print-summary -o test-coverage.html &> /dev/null
         make install
-        ls -l ~/prod_util/install/bin
+        ls -l ~/prod_util/install/bin/fsync_file || exit 1
 
     - name: upload-test-coverage
       uses: actions/upload-artifact@v3
