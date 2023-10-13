@@ -14,6 +14,7 @@ class ProdUtil(CMakePackage):
 
     homepage = "https://github.com/NOAA-EMC/NCEPLIBS-prod_util"
     url = "https://github.com/NOAA-EMC/NCEPLIBS-prod_util/archive/refs/tags/v1.2.2.tar.gz"
+    git = "https://github.com/NOAA-EMC/NCEPLIBS-prod_util"
 
     maintainers("AlexanderRichert-NOAA", "Hang-Lei-NOAA", "edwardhartnett")
 
