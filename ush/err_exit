@@ -58,8 +58,10 @@ if [ "$SENDECF" = "YES" ]; then
 fi
 
 # KILL THE JOB:
-if [ -z $PBS_JOBID ]; then
-ecflow_client --kill=${ECF_NAME:?}
+if [ ! -z $PBS_JOBID ]; then
+  qdel $PBS_JOBID
+elif [ ! -z $SLURM_JOB_ID ]; then
+  scancel $SLURM_JOB_ID
 else
-qdel $PBS_JOBID
+  ecflow_client --kill=${ECF_NAME:?}
 fi
