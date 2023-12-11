@@ -67,6 +67,3 @@ if [ ! -z $PBS_JOBID ]; then
 elif [ ! -z $SLURM_JOB_ID ]; then
   scancel $SLURM_JOB_ID
 fi
-else
-  ecflow_client --kill=${ECF_NAME:?}
-fi
