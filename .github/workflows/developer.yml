@@ -23,41 +23,14 @@ jobs:
     steps:
 
     - name: install-dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install doxygen gcovr
+      run: sudo apt-get install doxygen gcovr
 
-    - name: checkout-bacio
-      uses: actions/checkout@v4
+    - name: "Build dependencies"
+      uses: NOAA-EMC/ci-build-nceplibs@develop
       with:
-        repository: NOAA-EMC/NCEPLIBS-bacio
-        path: bacio
-        ref: develop
-
-    - name: build-bacio
-      run: |
-        cd bacio
-        mkdir build && cd build
-        cmake -DCMAKE_INSTALL_PREFIX=~/bacio ..
-        make -j2
-        make install
-
-    - name: checkout-w3emc
-      uses: actions/checkout@v4
-      with:
-        repository: NOAA-EMC/NCEPLIBS-w3emc
-        path: w3emc
-        ref: develop
-
-    - name: build-w3emc
-      if: steps.cache-w3emc.outputs.cache-hit != 'true'
-      run: |
-        cd w3emc
-        mkdir build
-        cd build
-        cmake -DBUILD_WITH_BUFR=OFF -DCMAKE_PREFIX_PATH=~/bacio -DCMAKE_INSTALL_PREFIX=~/w3emc ..
-        make -j2
-        make install
+        bacio-version: develop
+        w3emc-version: develop
+        w3emc-cmake-args: -DBUILD_WITH_BUFR=OFF
 
     - name: checkout-prod_util
       uses: actions/checkout@v4
@@ -66,21 +39,19 @@ jobs:
 
     - name: build-prod_util
       run: |
-        cd prod_util
-        mkdir build && cd build
-        cmake -DCMAKE_PREFIX_PATH="~/bacio;~/w3emc" -DCMAKE_Fortran_FLAGS="-g -fprofile-abs-path -fprofile-arcs -ftest-coverage -O0 -Wall" -DCMAKE_C_FLAGS="-g -fprofile-abs-path -fprofile-arcs -ftest-coverage -O0 -Wall" -DCMAKE_INSTALL_PREFIX=~/prod_util/install -DENABLE_DOCS=ON ..
-        make -j2
-        ctest --output-on-failure --verbose
-        gcovr --root .. -v  --html-details --exclude ../tests --exclude CMakeFiles --print-summary -o test-coverage.html &> /dev/null
-        make install
+        cmake -S prod_util -B prod_util/build -DCMAKE_PREFIX_PATH="$GITHUB_WORKSPACE/nceplibs/NCEPLIBS-bacio;$GITHUB_WORKSPACE/nceplibs/NCEPLIBS-w3emc" -DCMAKE_Fortran_FLAGS="-g -fprofile-abs-path -fprofile-arcs -ftest-coverage -O0 -Wall" -DCMAKE_C_FLAGS="-g -fprofile-abs-path -fprofile-arcs -ftest-coverage -O0 -Wall" -DCMAKE_INSTALL_PREFIX=~/prod_util/install -DENABLE_DOCS=ON
+        cmake --build prod_util/build --parallel 2 --verbose
+        ctest --test-dir prod_util/build --output-on-failure --verbose
+        gcovr --root prod_util -v --html-details --exclude prod_util/tests --exclude prod_util/build/CMakeFiles --print-summary -o test-coverage.html &> /dev/null
+        cmake --install prod_util/build
         ls -l ~/prod_util/install/bin/fsync_file || exit 1
 
     - name: upload-test-coverage
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: prod_util-test-coverage
         path: |
-          prod_util/build/*.html
-          prod_util/build/*.css
+          *.html
+          *.css
 
         

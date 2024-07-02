@@ -26,54 +26,13 @@ jobs:
 
     steps:
 
-    - name: cache-bacio
-      id: cache-bacio
-      uses: actions/cache@v3
+
+    - name: "Build dependencies"
+      uses: NOAA-EMC/ci-build-nceplibs@develop
       with:
-        path: ~/bacio
-        key: bacio-GCC-${{ runner.os }}-${{ matrix.bacio-version }}
-
-    - name: checkout-bacio
-      if: steps.cache-bacio.outputs.cache-hit != 'true'
-      uses: actions/checkout@v4
-      with:
-        repository: NOAA-EMC/NCEPLIBS-bacio
-        path: bacio
-        ref: v${{ matrix.bacio-version }}
-
-    - name: build-bacio
-      if: steps.cache-bacio.outputs.cache-hit != 'true'
-      run: |
-        cd bacio
-        mkdir build && cd build
-        cmake .. -DCMAKE_INSTALL_PREFIX=~/bacio
-        make -j2
-        make install
-
-    - name: cache-w3emc
-      id: cache-w3emc
-      uses: actions/cache@v3
-      with:
-        path: ~/w3emc
-        key: w3emc-GCC-${{ runner.os }}-${{ matrix.w3emc-version }}-${{ matrix.bacio-version }}
-
-    - name: checkout-w3emc
-      if: steps.cache-w3emc.outputs.cache-hit != 'true'
-      uses: actions/checkout@v4
-      with:
-        repository: NOAA-EMC/NCEPLIBS-w3emc
-        path: w3emc
-        ref: v${{ matrix.w3emc-version }}
-
-    - name: build-w3emc
-      if: steps.cache-w3emc.outputs.cache-hit != 'true'
-      run: |
-        cd w3emc
-        mkdir build
-        cd build
-        cmake -DBUILD_WITH_BUFR=OFF -DCMAKE_PREFIX_PATH=~/bacio -DCMAKE_INSTALL_PREFIX=~/w3emc ..
-        make -j2
-        make install
+        bacio-version: v${{ matrix.bacio-version }}
+        w3emc-version: v${{ matrix.w3emc-version }}
+        w3emc-cmake-args: -DBUILD_WITH_BUFR=OFF
 
     - name: checkout-prod_util
       uses: actions/checkout@v4
@@ -82,8 +41,6 @@ jobs:
 
     - name: build-prod_util
       run: |
-        cd prod_util
-        mkdir build && cd build
-        CC=gcc-11 FC=gfortran-11 cmake .. -DCMAKE_PREFIX_PATH="~/bacio;~/w3emc"
-        make -j2
-        ctest --output-on-failure --verbose
+        cmake -S prod_util -B prod_util/build -DCMAKE_PREFIX_PATH="$GITHUB_WORKSPACE/nceplibs/NCEPLIBS-bacio;$GITHUB_WORKSPACE/nceplibs/NCEPLIBS-w3emc" 
+        cmake --build prod_util/build --parallel 2 --verbose
+        ctest --test-dir prod_util/build --output-on-failure --verbose

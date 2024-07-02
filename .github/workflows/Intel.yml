@@ -12,90 +12,35 @@ on:
     branches:
     - develop
 
-# Use .bash_profile at each step to source /opt/intel/oneapi/setvars.sh
-defaults:
-  run:
-    shell: bash -leo pipefail {0}
-
 jobs:
   Intel:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        compilers: ["CC=icc FC=ifort", "CC=icx FC=ifx"]
+        compilers: ["oneapi", "classic"]
 
     steps:
 
-    # See https://software.intel.com/content/www/us/en/develop/articles/oneapi-repo-instructions.html
-    - name: install-intel
-      run: |
-        cd /tmp
-        wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB
-        sudo apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB
-        rm GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB
-        echo "deb https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list
-        sudo apt-get update
-        sudo apt-get install intel-oneapi-dev-utilities intel-oneapi-mpi-devel intel-oneapi-openmp intel-oneapi-compiler-fortran-2023.2.1 intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic-2023.2.1
-        echo "source /opt/intel/oneapi/setvars.sh" >> ~/.bash_profile
-
-    - name: cache-bacio
-      id: cache-bacio
-      uses: actions/cache@v3
+    - name: "Install Intel"
+      uses: NOAA-EMC/ci-install-intel-toolkit@develop
       with:
-        path: ~/bacio
-        key: bacio-Intel-${{ matrix.compilers }}-${{ runner.os }}-2.6.0
+        compiler-setup: ${{ matrix.compilers }}
 
-    - name: checkout-bacio
-      if: steps.cache-bacio.outputs.cache-hit != 'true'
-      uses: actions/checkout@v2
+    - name: "Build dependencies"
+      uses: NOAA-EMC/ci-build-nceplibs@develop
       with:
-        repository: NOAA-EMC/NCEPLIBS-bacio
-        path: bacio
-        ref: v2.6.0
-
-    - name: build-bacio
-      if: steps.cache-bacio.outputs.cache-hit != 'true'
-      run: |
-        cd bacio
-        mkdir build && cd build
-        ${{ matrix.compilers }} cmake .. -DCMAKE_INSTALL_PREFIX=~/bacio
-        make -j2
-        make install
-
-    - name: cache-w3emc
-      id: cache-w3emc
-      uses: actions/cache@v3
-      with:
-        path: ~/w3emc
-        key: w3emc-Intel-${{ matrix.compilers }}-${{ runner.os }}-2.10.0
-
-    - name: checkout-w3emc
-      if: steps.cache-w3emc.outputs.cache-hit != 'true'
-      uses: actions/checkout@v2
-      with:
-        repository: NOAA-EMC/NCEPLIBS-w3emc
-        path: w3emc
-        ref: v2.10.0
-
-    - name: build-w3emc
-      if: steps.cache-w3emc.outputs.cache-hit != 'true'
-      run: |
-        cd w3emc
-        mkdir build
-        cd build
-        ${{ matrix.compilers }} cmake -DBUILD_WITH_BUFR=OFF -DCMAKE_PREFIX_PATH=~/bacio -DCMAKE_INSTALL_PREFIX=~/w3emc ..
-        make -j2
-        make install
+        bacio-version: v2.6.0
+        w3emc-version: v2.10.0
+        w3emc-cmake-args: -DBUILD_WITH_BUFR=OFF
+        key-prefix: Intel-
 
     - name: checkout-prod_util
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
       with:
         path: prod_util
 
     - name: build-prod_util
       run: |
-        cd prod_util
-        mkdir build && cd build
-        ${{ matrix.compilers }} cmake .. -DCMAKE_PREFIX_PATH="~/bacio;~/w3emc"
-        make -j2
-        ctest --output-on-failure --verbose
+        cmake -S prod_util -B prod_util/build -DCMAKE_PREFIX_PATH="$GITHUB_WORKSPACE/nceplibs/NCEPLIBS-bacio;$GITHUB_WORKSPACE/nceplibs/NCEPLIBS-w3emc" 
+        cmake --build prod_util/build --parallel 2 --verbose
+        ctest --test-dir prod_util/build --output-on-failure --verbose
