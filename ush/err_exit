@@ -66,4 +66,5 @@ if [ ! -z $PBS_JOBID ]; then
   qdel $PBS_JOBID
 elif [ ! -z $SLURM_JOB_ID ]; then
   scancel $SLURM_JOB_ID
+  sleep 600
 fi
