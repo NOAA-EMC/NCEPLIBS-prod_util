@@ -1,0 +1,301 @@
+#!/bin/bash
+
+# Written by Gemini v3.1 Pro. Modified and reviewed by a human.
+
+TEST_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_UNDER_TEST=$( realpath "${TEST_DIR}/../ush/err_exit" )
+
+# --- Framework UI ---
+PASSED=0
+FAILED=0
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+NC='\033[0m'
+
+pass() {
+    echo -e "${GREEN}PASS:${NC} $1"
+    ((PASSED++))
+}
+
+fail() {
+    echo -e "${RED}FAIL:${NC} $1\n    -> $2\n"
+    ((FAILED++))
+}
+
+# --- Setup & Teardown ---
+setup() {
+    export TEST_TEMP_DIR="$(mktemp -d)"
+    
+    # Unset all potential environment variables to ensure a clean state
+    unset jobid pgm err DATA pgmout SENDECF ECF_HOST ECF_JOBOUT PBS_JOBID ECF_NAME JOBID KILLJOB
+    
+    # Provide a default ECF_NAME so the script doesn't abort early on ${ECF_NAME:?}
+    export ECF_NAME="mock_ecf_job"
+
+    # Mock external commands
+    module() { echo "mock_module $@"; }
+    export -f module
+    
+    timeout() {
+        local duration=$1
+        shift
+        # Allow evaluation of trailing mock commands
+        echo "mock_timeout ${duration}" $("$@")
+    }
+    export -f timeout
+    
+    ecflow_client() { echo "mock_ecflow_client $@"; }
+    export -f ecflow_client
+    
+    ssh() { echo "mock_ssh $@"; }
+    export -f ssh
+    
+    qdel() { echo "mock_qdel $@"; }
+    export -f qdel
+    
+    # Clean up any residual local files
+    rm -f errfile dummy_pgmout
+}
+
+teardown() {
+    rm -rf "$TEST_TEMP_DIR"
+    rm -f errfile dummy_pgmout
+}
+
+# --- Test Cases ---
+
+test_message_construction() {
+    setup
+    export jobid="999"
+    export pgm="data_ingest.sh"
+    export err="127"
+    
+    local output
+    output=$($SCRIPT_UNDER_TEST "Critical failure" 2>&1)
+    
+    if [[ "$output" == *"FATAL ERROR: Critical failure, ERROR IN data_ingest.sh RETURN CODE 127"* ]]; then
+        pass "$FUNCNAME"
+    else
+        fail "$FUNCNAME" "Message construction failed. Output: $output"
+    fi
+    teardown
+}
+
+test_data_warning_when_unset() {
+    setup
+    # DATA is intentionally unset
+    local output
+    output=$($SCRIPT_UNDER_TEST 2>&1)
+    
+    if [[ "$output" == *"WARNING: DATA variable not defined"* ]]; then
+        pass "$FUNCNAME"
+    else
+        fail "$FUNCNAME" "Did not find expected warning. Output: $output"
+    fi
+    teardown
+}
+
+test_ls_when_data_set() {
+    setup
+    export DATA="$TEST_TEMP_DIR"
+    export LMOD_SH_DBG_ON=1
+
+    local output
+    output=$(bash -x $SCRIPT_UNDER_TEST 2>&1)
+   
+    if [[ "$output" == *"ls -ltr $TEST_TEMP_DIR"* ]]; then
+        pass "$FUNCNAME"
+    else
+        fail "$FUNCNAME" "Failed to find 'ls -ltr $TEST_TEMP_DIR' call. Output: "
+        echo "$output"
+    fi
+
+    unset LMOD_SH_DBG_ON
+    teardown
+}
+
+test_errfile_appends_to_pgmout() {
+    setup
+    export pgmout="dummy_pgmout"
+    touch dummy_pgmout
+    echo "Simulated error log entry" > errfile
+    
+    local output
+    output=$($SCRIPT_UNDER_TEST 2>&1)
+    
+    if grep -q "contents of errfile" dummy_pgmout && grep -q "Simulated error log entry" dummy_pgmout; then
+        pass "$FUNCNAME"
+    else
+        fail "$FUNCNAME" "File was not appended correctly."
+    fi
+    teardown
+}
+
+test_sendecf_yes() {
+    setup
+    export SENDECF="YES"
+    export ECF_HOST="my-ecflow-host"
+    export ECF_JOBOUT="/path/to/ecf.out"
+    
+    local output
+    output=$($SCRIPT_UNDER_TEST 2>&1)
+    
+    if [[ "$output" == *"mock_timeout 30 mock_ecflow_client --msg mock_ecf_job: Job UNKNOWN failed"* ]] && \
+       [[ "$output" == *"mock_timeout 30 mock_ssh my-ecflow-host echo"* ]] && \
+       [[ "$output" == *">> $ECF_JOBOUT"* ]]; then
+        pass "$FUNCNAME"
+    else
+        fail "$FUNCNAME" "Mocks were not called properly. Output: $output"
+    fi
+    teardown
+}
+
+test_ecflow_log_no_ecf_jobout() {
+    setup
+    export SENDECF="YES"
+    export ECF_JOBOUT="/path/to/ecf.out"
+
+    local output
+    output=$($SCRIPT_UNDER_TEST 2>&1)
+
+    if [[ "$output" == *"FATAL ERROR Unable to write to ecflow server as either ECF_HOST or ECF_JOBOUT are undefined!!"* ]]; then
+        pass "$FUNCNAME"
+    else
+        fail "$FUNCNAME" "ecFlow log written when ECF_HOST is empty. Output: $output"
+    fi
+    teardown
+}
+
+test_ecflow_log_no_ecf_host() {
+    setup
+    export SENDECF="YES"
+    export ECF_HOST="my-ecflow-host"
+
+    local output
+    output=$($SCRIPT_UNDER_TEST 2>&1)
+
+    if [[ "$output" == *"FATAL ERROR Unable to write to ecflow server as either ECF_HOST or ECF_JOBOUT are undefined!!"* ]]; then
+        pass "$FUNCNAME"
+    else
+        fail "$FUNCNAME" "ecFlow log written when ECF_JOBOUT is empty. Output: $output"
+    fi
+    teardown
+}
+
+test_ecflow_log_no_ecf_jobout_no_ecf_host() {
+    setup
+    export SENDECF="YES"
+
+    local output
+    output=$($SCRIPT_UNDER_TEST 2>&1)
+
+    if [[ "$output" == *"FATAL ERROR Unable to write to ecflow server as either ECF_HOST or ECF_JOBOUT are undefined!!"* ]]; then
+        pass "$FUNCNAME"
+    else
+        fail "$FUNCNAME" "ecFlow log written when ECF_HOST and ECF_JOBOUT are empty. Output: $output"
+    fi
+    teardown
+}
+
+test_kill_via_ecflow_when_no_pbs() {
+    setup
+    # PBS_JOBID is unset
+
+    export SENDECF="YES"
+
+    local output
+    output=$($SCRIPT_UNDER_TEST 2>&1)
+    
+    if [[ "$output" == *"mock_ecflow_client --kill=mock_ecf_job"* ]]; then
+        pass "$FUNCNAME"
+    else
+        fail "$FUNCNAME" "Expected ecflow kill call missing. Output: $output"
+    fi
+    teardown
+}
+
+test_kill_via_ecflow_no_ecf_name() {
+    setup
+
+    export SENDECF="YES"
+    export ECF_HOST="my-ecflow-host"
+    export ECF_JOBOUT="/path/to/ecf.out"
+    export ECF_NAME=""
+    export JOBID="12345.scheduler"
+
+    local output
+    output=$($SCRIPT_UNDER_TEST 2>&1)
+
+    if [[ "$output" == *"FATAL ERROR Unable to kill ecflow job as ECF_NAME variable is not set!!"* ]]; then
+        pass "$FUNCNAME"
+    else
+        fail "$FUNCNAME" "Expected qdel call missing or JOBID not set properly. Output: $output"
+    fi
+    teardown
+}
+
+test_kill_via_qdel_when_pbs_set() {
+    setup
+    export PBS_JOBID="12345.scheduler"
+    
+    local output
+    output=$($SCRIPT_UNDER_TEST 2>&1)
+    
+    if [[ "$output" == *"mock_qdel 12345.scheduler"* ]] && [[ "$output" != *"mock_ecflow_client --kill"* ]]; then
+        pass "$FUNCNAME"
+    else
+        fail "$FUNCNAME" "Expected qdel call missing or ecflow called improperly. Output: $output"
+    fi
+    teardown
+}
+
+test_kill_via_qdel_no_pbs_jobid() {
+    setup
+
+    local output
+    output=$($SCRIPT_UNDER_TEST 2>&1)
+
+    if [[ "$output" == *"Could not find a scheduler command or job ID to kill the current job"* ]] && \
+        [[ "$output" == *"KILLJOB = qdel"* ]] && \
+        echo "$output" | grep -qE "^JOBID   = $" ; then
+        pass "$FUNCNAME"
+    else
+        fail "$FUNCNAME" "Expected failure did not occur when JOBID is empty. Output: $output"
+    fi
+    teardown
+}
+
+# --- Test Runner ---
+
+echo "Starting pure Bash test suite for $SCRIPT_UNDER_TEST..."
+echo "-------------------------------------------------------------"
+
+# Check if target script is executable
+if [ ! -x "$SCRIPT_UNDER_TEST" ]; then
+    echo "Applying executable permissions to $SCRIPT_UNDER_TEST..."
+    chmod +x "$SCRIPT_UNDER_TEST"
+fi
+
+# Execute all tests
+test_message_construction
+test_data_warning_when_unset
+test_ls_when_data_set
+test_errfile_appends_to_pgmout
+test_sendecf_yes
+test_ecflow_log_no_ecf_jobout
+test_ecflow_log_no_ecf_host
+test_ecflow_log_no_ecf_jobout_no_ecf_host
+test_kill_via_ecflow_when_no_pbs
+test_kill_via_ecflow_no_ecf_name
+test_kill_via_qdel_when_pbs_set
+test_kill_via_qdel_no_pbs_jobid
+
+echo "-------------------------------------------------------------"
+echo "Test Run Complete: $PASSED passed, $FAILED failed."
+
+# Return standard exit codes for CI/CD compatibility
+if [ "$FAILED" -ne 0 ]; then
+    exit 1
+else
+    exit 0
+fi 
