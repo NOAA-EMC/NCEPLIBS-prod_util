@@ -56,7 +56,7 @@ def send(subject, message_body, to_address=default_recipient, cc_address=None, b
     ecFlow_task_path = getenv('ECF_NAME')
     if ecFlow_task_path:
         job_info.append(("ecFlow Task", ecFlow_task_path))
-    if getenv('ECF_RID'):
+    if getenv('PBS_JOBNAME'):
         try:
             stdout_file = check_output("qstat -fwx {0} | grep Output_Path".format(getenv('ECF_RID')), shell=True).decode().split(":")[1]
         except:

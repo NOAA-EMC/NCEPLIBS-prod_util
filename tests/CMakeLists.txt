@@ -3,3 +3,4 @@
 add_test(NAME test_nhour COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_nhour.sh ${CMAKE_BINARY_DIR}/sorc/nhour.fd/nhour)
 add_test(NAME test_ndate COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_ndate.sh ${CMAKE_BINARY_DIR}/sorc/ndate.fd/ndate)
 add_test(NAME test_mdate COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_mdate.sh ${CMAKE_BINARY_DIR}/sorc/mdate.fd/mdate)
+add_test(NAME test_err_exit COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_err_exit.sh)
