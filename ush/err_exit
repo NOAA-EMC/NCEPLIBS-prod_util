@@ -115,5 +115,6 @@ fi
 
 if [[ ! -z "${SLURM_JOB_ID}" ]]; then
     echo "----- waiting for ${SLURM_JOB_ID} to be killed -----"
-    sleep 600
+    sleep_time=${SLURM_SLEEP:-600}
+    sleep "${sleep_time}"
 fi
