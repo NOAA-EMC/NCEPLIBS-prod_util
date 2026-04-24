@@ -19,7 +19,29 @@ ECF_NAME=${ECF_NAME:-""}   # Name of the ECF Job
 ECF_HOST=${ECF_HOST:-""}   # ecflow hostname
 ECF_JOBOUT=${ECF_JOBOUT:-""} # ecflow job output file
 JOBID=${JOBID:-$PBS_JOBID}   # Scheduler Job ID e.g. $PBS_JOBID, $SLURM_ID, etc
-KILLJOB=${KILLJOB:-qdel}     # Scheduler command to kill a job e.g. qdel, scancel, etc
+
+if [[ -z "${KILLJOB:-}" ]]; then
+    if [[ -n "${PBS_JOBID:-}" ]]; then
+        KILLJOB="qdel"
+    elif [[ -n "${SLURM_JOB_ID:-}" ]]; then
+        KILLJOB="scancel"
+    elif [[ -n "${LSB_JOBID:-}" ]]; then
+        KILLJOB="bkill"
+    else
+        # Check if qdel, scancel, or bkill commands are available in the PATH
+        if command -v qdel &> /dev/null; then
+            KILLJOB="qdel"
+        elif command -v scancel &> /dev/null; then
+            KILLJOB="scancel"
+        elif command -v bkill &> /dev/null; then
+            KILLJOB="bkill"
+        else
+            echo "WARNING: Could not determine job scheduler and KILLJOB variable is not set."
+            echo "         Continuing assuming that ecflow will be used to kill the job."
+            KILLJOB=""
+        fi
+    fi
+fi
 
 msg1=${*:-Job ${jobid} failed}
 if [[ -n "${pgm}" ]]; then
